@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADA8 · Laboratorio Pokédex con Next.js</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #FBFCFE;
+  --paper-2: #EEF2F9;
+  --ink: #14213D;
+  --ink-soft: #4A5876;
+  --line: #D6DDEA;
+  --brand: #1F3A93;
+  --brand-ink: #FFFFFF;
+  --mark: #FFE45C;
+  --mark-ink: #14213D;
+  --ok: #2F9E6A;
+  --code-bg: #0F1729;
+  --code-ink: #E3E8F4;
+  --code-line: #24304A;
+  --tk-key: #FF8FB1;
+  --tk-str: #9BE38F;
+  --tk-tag: #7CC7FF;
+  --tk-attr: #FFD27A;
+  --tk-com: #7C8AA8;
+  --tk-num: #C9A6FF;
+  --tk-fn: #8FE3E0;
+  --sans: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E1524;
+    --paper-2: #16203A;
+    --ink: #E6EBF5;
+    --ink-soft: #A3AFC8;
+    --line: #2A3653;
+    --brand: #7FA2FF;
+    --brand-ink: #0E1524;
+    --mark: #E8C93A;
+    --mark-ink: #0E1524;
+    --ok: #4CC08A;
+    --code-bg: #080D18;
+    --code-line: #1F2A43;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E1524;
+  --paper-2: #16203A;
+  --ink: #E6EBF5;
+  --ink-soft: #A3AFC8;
+  --line: #2A3653;
+  --brand: #7FA2FF;
+  --brand-ink: #0E1524;
+  --mark: #E8C93A;
+  --mark-ink: #0E1524;
+  --ok: #4CC08A;
+  --code-bg: #080D18;
+  --code-line: #1F2A43;
+}
+
+:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 24px); scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 18px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; }
+a { color: var(--brand); }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar ---------- */
+.rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 22px 28px;
+  border-right: 1px solid var(--line);
+  background: var(--paper-2);
+}
+.rail-course { font-size: 14px; color: var(--ink-soft); margin: 0 0 4px; }
+.rail-title { font-size: 22px; line-height: 1.2; margin: 0 0 20px; }
+.progress { margin-bottom: 20px; }
+.progress-text { font-size: 14px; color: var(--ink-soft); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.progress-bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0; background: var(--ok); border-radius: 99px; transition: width .3s ease; }
+@media (prefers-reduced-motion: reduce) { .progress-fill { transition: none; } }
+
+.steps { list-style: none; padding: 0; margin: 0; }
+.steps li { margin: 0; }
+.steps a {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 8px;
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.steps a:hover { background: var(--line); }
+.steps a.active { background: var(--brand); color: var(--brand-ink); }
+.num {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 700;
+  border: 2px solid currentColor;
+  font-variant-numeric: tabular-nums;
+}
+.steps a.done .num { background: var(--ok); border-color: var(--ok); color: #fff; }
+.steps a.active.done .num { border-color: var(--brand-ink); }
+.rail-reset {
+  margin-top: 18px;
+  background: none; border: 0; padding: 0;
+  font: inherit; font-size: 14px; color: var(--ink-soft);
+  text-decoration: underline; cursor: pointer;
+}
+.theme-toggle {
+  margin-top: 10px;
+  display: block;
+  background: none; border: 0; padding: 0;
+  font: inherit; font-size: 14px; color: var(--ink-soft);
+  text-decoration: underline; cursor: pointer;
+}
+
+/* ---------- Main ---------- */
+main { padding: 56px clamp(20px, 5vw, 72px) 120px; }
+.col { max-width: 760px; }
+
+.hero { padding-bottom: 40px; margin-bottom: 48px; border-bottom: 1px solid var(--line); }
+.hero p.course { margin: 0 0 12px; color: var(--ink-soft); font-size: 16px; }
+.hero h1 {
+  font-size: clamp(40px, 6vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin: 0 0 20px;
+}
+.hero h1 span { display: block; }
+.hero .lead { font-size: 21px; max-width: 34em; margin: 0 0 24px; }
+.prereq { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.prereq li {
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 4px 14px;
+  font-size: 15px;
+  background: var(--paper-2);
+}
+
+section.step { margin-bottom: 72px; }
+.step-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+.step-head .big {
+  flex: none;
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+  min-width: 1.4em;
+}
+.step-head h2 { font-size: 30px; line-height: 1.15; margin: 4px 0 0; flex: 1; }
+.step-check {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 6px;
+  padding: 6px 12px;
+  border: 2px solid var(--line);
+  border-radius: 99px;
+  font-size: 15px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--paper);
+  color: var(--ink);
+}
+.step-check input { width: 18px; height: 18px; accent-color: var(--ok); margin: 0; cursor: pointer; }
+.step-check:has(input:checked) { border-color: var(--ok); color: var(--ok); font-weight: 700; }
+.goal { font-size: 19px; color: var(--ink-soft); margin: 0 0 22px; }
+
+h3 { font-size: 21px; margin: 32px 0 8px; }
+p { margin: 0 0 16px; }
+ol.do { padding-left: 1.4em; margin: 0 0 16px; }
+ol.do > li { margin-bottom: 10px; padding-left: 4px; }
+ol.do > li::marker { font-weight: 700; color: var(--brand); }
+ul.why { margin: 0 0 16px; padding-left: 1.2em; }
+ul.why li { margin-bottom: 8px; }
+
+code:not(pre code) {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  padding: 1px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.cmd {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  font-weight: 600;
+  background: var(--mark);
+  color: var(--mark-ink);
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  box-decoration-break: clone;
+}
+
+/* Code blocks */
+.code {
+  margin: 0 0 22px;
+  border-radius: 10px;
+  background: var(--code-bg);
+  border: 1px solid var(--code-line);
+  overflow: hidden;
+}
+.code-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px 8px 16px;
+  border-bottom: 1px solid var(--code-line);
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--tk-com);
+}
+.copy {
+  font: 600 13px var(--sans);
+  color: var(--code-ink);
+  background: transparent;
+  border: 1px solid var(--code-line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.copy:hover { background: var(--code-line); }
+.copy.ok { color: var(--tk-str); border-color: var(--tk-str); }
+.code pre {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--code-ink);
+  tab-size: 2;
+}
+.hljs-keyword, .hljs-built_in { color: var(--tk-key); }
+.hljs-string, .hljs-template-string { color: var(--tk-str); }
+.hljs-tag, .hljs-name { color: var(--tk-tag); }
+.hljs-attr { color: var(--tk-attr); }
+.hljs-comment { color: var(--tk-com); font-style: italic; }
+.hljs-number, .hljs-literal { color: var(--tk-num); }
+.hljs-title, .hljs-title.function_ { color: var(--tk-fn); }
+.hljs-subst { color: var(--code-ink); }
+
+/* Callouts */
+.shot {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 14px;
+  align-items: center;
+  margin: 24px 0 0;
+  padding: 14px 18px;
+  border: 2px dashed var(--brand);
+  border-radius: 10px;
+  font-size: 17px;
+}
+.shot svg { width: 32px; height: 32px; color: var(--brand); }
+.shot strong { display: block; }
+.shot small { color: var(--ink-soft); font-size: 15px; }
+.note {
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  border-left: 4px solid var(--mark);
+  background: var(--paper-2);
+  border-radius: 0 8px 8px 0;
+  font-size: 17px;
+}
+.note p:last-child { margin-bottom: 0; }
+
+.tree {
+  font-family: var(--mono);
+  font-size: 14.5px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 0 0 20px;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.6;
+}
+.tree b { color: var(--ok); }
+
+.table-wrap { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 16px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--paper-2); font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+td.pts, th.pts { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.total td { font-weight: 700; background: var(--paper-2); }
+
+footer { color: var(--ink-soft); font-size: 15px; border-top: 1px solid var(--line); padding-top: 24px; margin-top: 40px; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .rail {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    height: auto;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    overflow: visible;
+  }
+  .rail-course, .rail-title, .rail-reset, .theme-toggle { display: none; }
+  .progress { margin-bottom: 8px; }
+  .steps { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .steps::-webkit-scrollbar { display: none; }
+  .steps a { grid-template-columns: 30px; padding: 4px; }
+  .steps a .label { display: none; }
+  main { padding-top: 32px; }
+  .step-head { flex-wrap: wrap; }
+  .step-head .big { font-size: 38px; }
+  .step-head h2 { font-size: 25px; }
+  .step-check { margin-left: auto; }
+  body { font-size: 17px; }
+}
+@media print {
+  .rail, .copy, .step-check { display: none; }
+  .layout { display: block; }
+  .code { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="rail" aria-label="Pasos de la práctica">
+  <p class="rail-course">Diseño de Interfaces · UMM</p>
+  <p class="rail-title"><strong>Pokédex con Next.js</strong></p>
+  <div class="progress" aria-live="polite">
+    <div class="progress-text"><span>Tu avance</span><span id="progress-label">0 de 10</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+  <ol class="steps" id="steps"></ol>
+  <button class="rail-reset" id="reset" type="button">Reiniciar avance</button>
+  <button class="theme-toggle" id="theme" type="button">Cambiar a modo oscuro</button>
+</nav>
+
+<main>
+<div class="col">
+
+<header class="hero" id="inicio">
+  <p class="course">Universidad Marista de Mérida · Diseño de Interfaces · ADA8</p>
+  <h1><span>Laboratorio</span><span>Pokédex</span></h1>
+  <p class="lead">Vas a construir una Pokédex con listado, búsqueda y vista de detalle usando Next.js, React y Tailwind. Marca cada paso como terminado para llevar tu avance.</p>
+  <ul class="prereq" aria-label="Prerrequisitos">
+    <li>Node.js 20 o superior</li>
+    <li>npm</li>
+    <li>Git</li>
+    <li>VS Code</li>
+  </ul>
+</header>
+
+<!-- ============ PASO 1 ============ -->
+<section class="step" id="paso-1" data-title="Clona el repositorio">
+  <p class="goal">Al terminar tendrás el proyecto corriendo en <strong>localhost:3000</strong>. Tailwind ya está configurado.</p>
+  <ol class="do">
+    <li>Posiciónate en una <strong>carpeta limpia</strong> para este ejercicio (recuerda los comandos <code>md</code>, <code>cd</code>, etc.).</li>
+    <li>Clona el repositorio: <span class="cmd">git clone https://github.com/majesova-umm/pokedex-next-initial.git</span></li>
+    <li>Entra a la carpeta: <span class="cmd">cd pokedex-next-initial</span></li>
+    <li>Instala los paquetes: <span class="cmd">npm install</span></li>
+    <li>Abre el proyecto en VS Code: <span class="cmd">code .</span></li>
+    <li>Desde la terminal de VS Code ejecuta: <span class="cmd">npm run dev</span></li>
+  </ol>
+  <p>Abre <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a>. Debes ver el título <strong>Pokédex</strong> y el mensaje “¡Tu proyecto está listo!”.</p>
+  <p>Estos son los archivos con los que vas a trabajar:</p>
+  <div class="tree">app/
+  layout.js     ← estructura común de todas las páginas
+  page.js       ← página principal (aquí empiezas)
+  globals.css   ← estilos globales, Tailwind ya configurado</div>
+  <div class="note"><p>En Next.js cada carpeta dentro de <code>app/</code> es una ruta, y su archivo <code>page.js</code> es lo que se muestra en esa ruta.</p></div>
+  <div class="shot" data-shot>
+    <strong>Screenshot 1: proyecto inicializado</strong>
+  </div>
+</section>
+
+<!-- ============ PASO 2 ============ -->
+<section class="step" id="paso-2" data-title="Consulta a la API">
+  <p class="goal">La página descarga 150 Pokémon y muestra sus nombres, todavía sin estilos.</p>
+  <ol class="do">
+    <li>Abre el archivo <code>app/page.js</code>.</li>
+    <li><strong>Borra el contenido actual.</strong></li>
+    <li>Agrega la llamada a la API:</li>
+  </ol>
+<script type="text/x-code" data-file="app/page.js">
+"use client";
+
+import { useEffect, useState } from "react";
+
+export default function Home() {
+  const [pokemons, setPokemons] = useState([]);
+
+  useEffect(() => {
+    const fetchPokemons = async () => {
+      const res = await fetch("https://pokeapi.co/api/v2/pokemon?limit=150");
+      const data = await res.json();
+      setPokemons(data.results);
+      console.log(data.results);
+    };
+
+    fetchPokemons();
+  }, []);
+
+  // aquí va el return del siguiente punto
+}
+</script>
+  <h3>¿Qué está pasando?</h3>
+  <ul class="why">
+    <li><code>"use client"</code> indica que este componente corre en el navegador. Lo necesitamos porque usa estado y efectos.</li>
+    <li><code>useState([])</code> crea la variable <code>pokemons</code> y la función <code>setPokemons</code> para cambiarla. Cada vez que llamas a <code>setPokemons</code>, React vuelve a dibujar la pantalla.</li>
+    <li><code>useEffect(..., [])</code> ejecuta la descarga <strong>una sola vez</strong>, cuando la página se carga. El <code>[]</code> vacío es lo que lo limita a una vez.</li>
+  </ul>
+  <ol class="do" start="4">
+    <li>Muestra los nombres en pantalla. Reemplaza el comentario por este <code>return</code>:</li>
+  </ol>
+<script type="text/x-code" data-file="app/page.js · dentro de Home()">
+  return (
+    <main>
+      <h1>Pokédex</h1>
+      <ul>
+        {pokemons.map((pokemon) => (
+          <li key={pokemon.name}>{pokemon.name}</li>
+        ))}
+      </ul>
+    </main>
+  );
+</script>
+  <p>En React las listas se generan con <code>.map()</code>. Cada elemento necesita una <code>key</code> única para que React sepa cuál es cuál.</p>
+  <ol class="do" start="5">
+    <li>Si no tienes el servidor corriendo, ejecuta <span class="cmd">npm run dev</span>. Verás un listado simple de nombres.</li>
+  </ol>
+</section>
+
+<!-- ============ PASO 3 ============ -->
+<section class="step" id="paso-3" data-title="Estilos básicos">
+  <p class="goal">Con Tailwind convertimos la lista en un grid de tarjetas.</p>
+  <p>Reemplaza el <code>return</code> completo. Fíjate en los atributos <code>className</code>: en React se escribe <code>className</code>, no <code>class</code>.</p>
+<script type="text/x-code" data-file="app/page.js · dentro de Home()">
+  return (
+    <main className="container mx-auto p-6">
+      <h1 className="text-4xl font-bold text-center mb-8 text-blue-600">Pokédex</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {pokemons.map((pokemon) => (
+          <div
+            key={pokemon.name}
+            className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow border border-gray-200"
+          >
+            <h2 className="text-lg font-semibold capitalize text-gray-800">{pokemon.name}</h2>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+</script>
+  <p>Si el servidor sigue corriendo, la página se actualiza sola al guardar. No necesitas volver a ejecutar <code>npm run dev</code>.</p>
+  <div class="shot" data-shot>
+    <strong>Screenshot 2: grid de Pokémon</strong>
+  </div>
+</section>
+
+<!-- ============ PASO 4 ============ -->
+<section class="step" id="paso-4" data-title="Imágenes">
+  <p class="goal">Cada tarjeta muestra la imagen de su Pokémon.</p>
+  <p>Cada Pokémon tiene un número, y su imagen está en una URL con ese número. Por ejemplo, <a href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png" target="_blank" rel="noopener">…/sprites/pokemon/1.png</a> es el Pokémon 1.</p>
+  <p>La API no nos da el número directamente, así que usamos la posición en la lista. <code>.map()</code> recibe como segundo parámetro el índice <code>i</code>, que empieza en 0. Cambia el <code>.map()</code> del grid así:</p>
+<script type="text/x-code" data-file="app/page.js · el grid">
+        {pokemons.map((pokemon, i) => (
+          <div
+            key={pokemon.name}
+            className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow border border-gray-200"
+          >
+            <img
+              src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i + 1}.png`}
+              alt={pokemon.name}
+              className="w-24 h-24 mx-auto mb-2"
+            />
+            <h2 className="text-lg font-semibold capitalize text-gray-800 text-center">
+              {pokemon.name}
+            </h2>
+          </div>
+        ))}
+</script>
+  <div class="note"><p>Las llaves <code>{ }</code> dentro del JSX permiten usar JavaScript. Las comillas invertidas <code>` `</code> permiten insertar variables en un texto con <code>${ }</code>.</p></div>
+</section>
+
+<!-- ============ PASO 5 ============ -->
+<section class="step" id="paso-5" data-title="Búsqueda">
+  <p class="goal">Un buscador filtra los Pokémon por nombre mientras escribes. Son tres cambios.</p>
+  <h3>1. El estado y el filtrado</h3>
+  <p>Debajo de <code>const [pokemons, setPokemons] = useState([]);</code> agrega:</p>
+<script type="text/x-code" data-file="app/page.js">
+  const [searchTerm, setSearchTerm] = useState("");
+</script>
+  <p>Y justo antes del <code>return</code>, agrega el filtrado:</p>
+<script type="text/x-code" data-file="app/page.js">
+  const filteredPokemons = pokemons.filter((pokemon) =>
+    pokemon.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+</script>
+  <p>No necesitamos nada especial para que se recalcule. Cada vez que cambia <code>searchTerm</code>, React vuelve a ejecutar la función completa y <code>filteredPokemons</code> se calcula de nuevo.</p>
+  <h3>2. El input</h3>
+  <p>Agrégalo debajo del <code>&lt;h1&gt;</code>:</p>
+<script type="text/x-code" data-file="app/page.js · debajo del h1">
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Search Pokémon..."
+        className="w-full max-w-md mx-auto block mb-6 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+</script>
+  <p>Esto es un <strong>input controlado</strong>: su valor siempre viene del estado (<code>value</code>), y cada tecla actualiza el estado (<code>onChange</code>).</p>
+  <h3>3. Los resultados filtrados</h3>
+  <p>En el grid cambia <code>pokemons.map</code> por <code>filteredPokemons.map</code>.</p>
+  <div class="note"><p>Ahora el grid recorre <code>filteredPokemons</code>, la lista ya filtrada, y no <code>pokemons</code>. Si te quedas con <code>pokemons.map</code>, el buscador no filtra nada.</p></div>
+  <p>Así queda el <code>return</code> completo con el input y el grid:</p>
+<script type="text/x-code" data-file="app/page.js · return completo">
+  return (
+    <main className="container mx-auto p-6">
+      <h1 className="text-4xl font-bold text-center mb-8 text-blue-600">Pokédex</h1>
+
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Search Pokémon..."
+        className="w-full max-w-md mx-auto block mb-6 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredPokemons.map((pokemon, i) => (   // ← antes era pokemons.map
+          <div
+            key={pokemon.name}
+            className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow border border-gray-200"
+          >
+            <img
+              src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i + 1}.png`}
+              alt={pokemon.name}
+              className="w-24 h-24 mx-auto mb-2"
+            />
+            <h2 className="text-lg font-semibold capitalize text-gray-800 text-center">
+              {pokemon.name}
+            </h2>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+</script>
+  <p>Prueba escribir “char” en el buscador.</p>
+  <div class="shot" data-shot>
+    <strong>Screenshot 3: buscador funcionando</strong>
+  </div>
+</section>
+
+<!-- ============ PASO 6 ============ -->
+<section class="step" id="paso-6" data-title="Vista de detalle">
+  <p class="goal">Una página nueva muestra la información de un Pokémon en <code>/pokemon-details?id=25</code>.</p>
+  <ol class="do">
+    <li>Crea un nuevo folder dentro de <code>app</code> llamado <code>pokemon-details</code>.</li>
+    <li>Dentro, crea un archivo llamado <code>page.js</code>.</li>
+  </ol>
+  <div class="tree">app/
+  pokemon-details/
+    page.js     <b>← nuevo</b>
+  layout.js
+  page.js</div>
+  <div class="note"><p>Esta página es un <strong>Server Component</strong>. No lleva <code>"use client"</code> ni usa <code>useState</code> o <code>useEffect</code>. La descarga ocurre en el servidor antes de enviar la página al navegador, por eso la función es <code>async</code> y puede usar <code>await</code> directamente.</p></div>
+  <ol class="do" start="3">
+    <li>Agrega la descarga del detalle y muestra el nombre:</li>
+  </ol>
+<script type="text/x-code" data-file="app/pokemon-details/page.js">
+export default async function PokemonDetails({ searchParams }) {
+  const { id } = await searchParams;
+  const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+  const pokemon = await res.json();
+
+  return (
+    <main>
+      <h1>{pokemon.name}</h1>
+    </main>
+  );
+}
+</script>
+  <p>Next.js le pasa a cada página <code>searchParams</code>, que contiene los parámetros de la URL (lo que va después del <code>?</code>). Prueba abrir <a href="http://localhost:3000/pokemon-details?id=25" target="_blank" rel="noopener">localhost:3000/pokemon-details?id=25</a>.</p>
+  <ol class="do" start="4">
+    <li>Muestra la imagen, su peso y su estatura. Reemplaza el <code>return</code>:</li>
+  </ol>
+<script type="text/x-code" data-file="app/pokemon-details/page.js">
+  return (
+    <main>
+      <img src={pokemon.sprites.front_default} alt={pokemon.name} />
+      <h1>{pokemon.name}</h1>
+      <p>Height: {pokemon.height / 10} m</p>
+      <p>Weight: {pokemon.weight / 10} kg</p>
+    </main>
+  );
+</script>
+  <p>La API da la estatura en decímetros y el peso en hectogramos; por eso dividimos entre 10.</p>
+  <ol class="do" start="5">
+    <li>Muestra los tipos. Agrega esto debajo del peso:</li>
+  </ol>
+<script type="text/x-code" data-file="app/pokemon-details/page.js">
+      <div>
+        <h3>Types:</h3>
+        {pokemon.types.map((type) => (
+          <span key={type.type.name}>{type.type.name} </span>
+        ))}
+      </div>
+</script>
+  <ol class="do" start="6">
+    <li>Muestra las estadísticas con barras de progreso. Agrega esto debajo de los tipos:</li>
+  </ol>
+<script type="text/x-code" data-file="app/pokemon-details/page.js">
+      <div>
+        <h3>Stats:</h3>
+        {pokemon.stats.map((stat) => (
+          <div key={stat.stat.name}>
+            <span>{stat.stat.name}: {stat.base_stat}</span>
+            <div style={{ background: "#eee", width: "100%", height: "8px", borderRadius: "4px" }}>
+              <div
+                style={{
+                  background: "#3b82f6",
+                  width: `${(stat.base_stat / 255) * 100}%`,
+                  height: "100%",
+                  borderRadius: "4px",
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+</script>
+  <div class="note"><p>En React, <code>style</code> recibe un <strong>objeto</strong>, no un texto. Por eso lleva doble llave <code>{{ }}</code> y las propiedades se escriben en camelCase: <code>borderRadius</code> en lugar de <code>border-radius</code>. El ancho de la barra es el porcentaje del stat sobre 255, el máximo posible.</p></div>
+  <ol class="do" start="7">
+    <li>Agrega el mensaje de carga. Crea en la misma carpeta un archivo <code>loading.js</code>:</li>
+  </ol>
+<script type="text/x-code" data-file="app/pokemon-details/loading.js">
+export default function Loading() {
+  return (
+    <div className="flex justify-center items-center h-screen">
+      <p className="text-xl">Loading...</p>
+    </div>
+  );
+}
+</script>
+  <p>Next.js muestra <code>loading.js</code> automáticamente mientras la página del servidor termina de descargar. No tienes que escribir un <code>if</code> para el estado de carga.</p>
+</section>
+
+<!-- ============ PASO 7 ============ -->
+<section class="step" id="paso-7" data-title="Botón regresar">
+  <p class="goal">El detalle tiene un botón para volver al listado, y toda la página queda estilizada.</p>
+  <p>Para navegar entre páginas en Next.js usamos el componente <code>Link</code> en lugar de <code>&lt;a&gt;</code>. Cambia de página sin recargar todo el sitio.</p>
+  <ol class="do">
+    <li>En la primera línea de <code>app/pokemon-details/page.js</code> agrega:</li>
+  </ol>
+<script type="text/x-code" data-file="app/pokemon-details/page.js · línea 1">
+import Link from "next/link";
+</script>
+  <ol class="do" start="2">
+    <li>Al final del <code>&lt;main&gt;</code>, agrega el botón:</li>
+  </ol>
+<script type="text/x-code" data-file="app/pokemon-details/page.js">
+      <Link
+        href="/"
+        className="inline-block mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Back to Pokédex
+      </Link>
+</script>
+  <h3>Todo estilizado con Tailwind queda así</h3>
+  <p>Puedes saltar directo a este código, pero es importante que entiendas lo que hace cada parte.</p>
+<script type="text/x-code" data-file="app/pokemon-details/page.js · completo">
+import Link from "next/link";
+
+export default async function PokemonDetails({ searchParams }) {
+  const { id } = await searchParams;
+  const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+  const pokemon = await res.json();
+
+  return (
+    <main className="container mx-auto p-6">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
+        <img
+          src={pokemon.sprites.front_default}
+          alt={pokemon.name}
+          className="w-48 h-48 mx-auto mb-4"
+        />
+        <h1 className="text-3xl font-bold capitalize text-center mb-4 text-gray-800">
+          {pokemon.name}
+        </h1>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <h3 className="font-semibold text-gray-600">Height</h3>
+            <p>{pokemon.height / 10} m</p>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-600">Weight</h3>
+            <p>{pokemon.weight / 10} kg</p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-semibold text-gray-600 mb-2">Types</h3>
+          <div className="flex gap-2">
+            {pokemon.types.map((type) => (
+              <span
+                key={type.type.name}
+                className="px-3 py-1 bg-blue-500 text-white rounded-full text-sm capitalize"
+              >
+                {type.type.name}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-gray-600 mb-2">Stats</h3>
+          {pokemon.stats.map((stat) => (
+            <div key={stat.stat.name} className="mb-2">
+              <div className="flex justify-between">
+                <span className="capitalize">{stat.stat.name}</span>
+                <span>{stat.base_stat}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-500 h-2 rounded-full"
+                  style={{ width: `${(stat.base_stat / 255) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <Link
+          href="/"
+          className="inline-block mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Back to Pokédex
+        </Link>
+      </div>
+    </main>
+  );
+}
+</script>
+  <div class="shot" data-shot>
+    <strong>Screenshots 4 y 5: detalle de Pokémon y botón regresar</strong>
+  </div>
+</section>
+
+<!-- ============ PASO 8 ============ -->
+<section class="step" id="paso-8" data-title="Enlaza grid y detalle">
+  <p class="goal">Cada tarjeta del grid abre su detalle. Pon atención a los ajustes del grid en <code>app/page.js</code>.</p>
+  <ol class="do">
+    <li>Agrega el import de <code>Link</code> debajo de los imports de React:</li>
+  </ol>
+<script type="text/x-code" data-file="app/page.js">
+import Link from "next/link";
+</script>
+  <ol class="do" start="2">
+    <li>Envuelve cada tarjeta en un <code>Link</code>. La <code>key</code> se mueve al <code>Link</code>, porque ahora es el elemento de afuera del <code>.map()</code>:</li>
+  </ol>
+<script type="text/x-code" data-file="app/page.js · el grid">
+        {filteredPokemons.map((pokemon, i) => (
+          <Link key={pokemon.name} href={`/pokemon-details?id=${i + 1}`} className="block">
+            <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow border border-gray-200 cursor-pointer">
+              <img
+                src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i + 1}.png`}
+                alt={pokemon.name}
+                className="w-24 h-24 mx-auto mb-2"
+              />
+              <h2 className="text-lg font-semibold capitalize text-gray-800 text-center">
+                {pokemon.name}
+              </h2>
+            </div>
+          </Link>
+        ))}
+</script>
+</section>
+
+<!-- ============ PASO 9 ============ -->
+<section class="step" id="paso-9" data-title="Corrige el bug">
+  <p class="goal">El buscador muestra la imagen y el detalle correctos de cada Pokémon.</p>
+  <p>Si llegaste hasta aquí habrás notado un bug. Al buscar “char” aparecen los nombres correctos, pero las imágenes son de Bulbasaur, Ivysaur y Venusaur. Y si das clic, abre el Pokémon equivocado.</p>
+  <div class="note"><p>El problema es que <code>i</code> es la posición en la lista <strong>filtrada</strong>, no en la original. Al filtrar, la posición vuelve a empezar en 0.</p></div>
+  <p>La solución es asignarle su <code>id</code> a cada Pokémon al momento de la descarga, cuando la lista todavía está completa.</p>
+  <ol class="do">
+    <li>En <code>fetchPokemons</code>, cambia el <code>setPokemons</code>:</li>
+  </ol>
+<script type="text/x-code" data-file="app/page.js · dentro de fetchPokemons">
+      setPokemons(
+        data.results.map((pokemon, i) => ({
+          ...pokemon,
+          id: i + 1,
+        }))
+      );
+</script>
+  <p><code>...pokemon</code> copia todas las propiedades que ya tenía (<code>name</code> y <code>url</code>) y agrega la nueva propiedad <code>id</code>.</p>
+  <ol class="do" start="2">
+    <li>En el grid, quita el <code>i</code> y usa <code>pokemon.id</code> en los tres lugares:</li>
+  </ol>
+<script type="text/x-code" data-file="app/page.js · el grid">
+        {filteredPokemons.map((pokemon) => (
+          <Link key={pokemon.id} href={`/pokemon-details?id=${pokemon.id}`} className="block">
+            <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow border border-gray-200 cursor-pointer">
+              <img
+                src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`}
+                alt={pokemon.name}
+                className="w-24 h-24 mx-auto mb-2"
+              />
+</script>
+  <p>Vuelve a buscar “char”: ahora deben aparecer Charmander, Charmeleon y Charizard con su imagen correcta.</p>
+</section>
+
+<!-- ============ PASO 10 ============ -->
+<section class="step" id="paso-10" data-title="Build">
+  <p class="goal">Compilas la versión de producción y la ejecutas.</p>
+  <ol class="do">
+    <li>Detén el servidor de desarrollo con <code>Ctrl + C</code>.</li>
+    <li>Ejecuta <span class="cmd">npm run build</span>. Al terminar verás un resumen de las rutas:</li>
+  </ol>
+<script type="text/x-code" data-file="terminal" data-lang="plaintext">
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+└ ƒ /pokemon-details
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+</script>
+  <p>La página principal es <strong>estática</strong> (○): el servidor la entrega igual a todos y el navegador descarga los Pokémon. El detalle es <strong>dinámico</strong> (ƒ): el servidor la genera en cada visita, porque depende del <code>id</code> de la URL. El resultado de la compilación queda en la carpeta <code>.next</code>.</p>
+  <ol class="do" start="3">
+    <li>Ejecuta la versión compilada con <span class="cmd">npm start</span> y abre <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a>.</li>
+  </ol>
+  <div class="note"><p>En VS Code puede aparecer un aviso sugiriendo <code>&lt;Image /&gt;</code> en lugar de <code>&lt;img&gt;</code>. Es solo una recomendación de optimización; para esta práctica puedes ignorarlo.</p></div>
+</section>
+
+<!-- ============ OTRAS APIS ============ -->
+<section class="step" id="otras-apis" data-title="Otras APIs" data-extra data-icon="⇄">
+  <p class="goal">¿No te gusta Pokémon? Puedes hacer la práctica con cualquiera de estas APIs.</p>
+  <p>Todas son gratuitas, no piden registro y tienen un listado, un detalle por id e imágenes. Los pasos de la guía son los mismos; solo cambian las URLs y los nombres de los campos.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>API</th><th>Listado</th><th>Detalle</th><th>Dónde vienen los datos</th><th>Imagen</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://rickandmortyapi.com/documentation" target="_blank" rel="noopener">Rick and Morty</a></td><td><code>https://rickandmortyapi.com/api/character</code></td><td><code>/api/character/1</code></td><td><code>data.results</code> (20 por página)</td><td><code>personaje.image</code></td></tr>
+        <tr><td><a href="https://web.dragonball-api.com/documentation" target="_blank" rel="noopener">Dragon Ball</a></td><td><code>https://dragonball-api.com/api/characters?limit=58</code></td><td><code>/api/characters/1</code></td><td><code>data.items</code></td><td><code>personaje.image</code></td></tr>
+        <tr><td><a href="https://hp-api.onrender.com" target="_blank" rel="noopener">Harry Potter</a></td><td><code>https://hp-api.onrender.com/api/characters</code></td><td><code>/api/character/{id}</code></td><td>Directo en <code>data</code></td><td><code>personaje.image</code></td></tr>
+        <tr><td><a href="https://www.themealdb.com/api.php" target="_blank" rel="noopener">TheMealDB</a> (recetas)</td><td><code>https://www.themealdb.com/api/json/v1/1/search.php?s=</code></td><td><code>lookup.php?i=52772</code></td><td><code>data.meals</code></td><td><code>receta.strMealThumb</code></td></tr>
+        <tr><td><a href="https://restcountries.com" target="_blank" rel="noopener">REST Countries</a> (países)</td><td><code>https://restcountries.com/v3.1/all?fields=name,flags,cca3</code></td><td><code>/v3.1/alpha/MEX</code></td><td>Directo en <code>data</code></td><td><code>pais.flags.png</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Estas APIs ya traen el <code>id</code> y la imagen en cada elemento, así que el bug del paso 9 no aparece. Usa el <code>id</code> que viene en los datos en lugar del índice <code>i</code>. Por ejemplo, con Rick and Morty el paso 2 queda así:</p>
+<script type="text/x-code" data-file="app/page.js · con Rick and Morty">
+const res = await fetch("https://rickandmortyapi.com/api/character");
+const data = await res.json();
+setPokemons(data.results); // cada personaje ya trae id e image
+</script>
+  <p>Y en el grid la imagen es <code>src={pokemon.image}</code>. En el detalle, muestra los campos que tenga tu API en lugar de los stats: especie y estado en Rick and Morty, ki y transformaciones en Dragon Ball, ingredientes en TheMealDB.</p>
+  <div class="note"><p>Antes de empezar, abre la URL del listado en tu navegador para ver cómo vienen los datos. Si alguna API no responde, elige otra de la tabla.</p></div>
+</section>
+
+<!-- ============ RÚBRICA ============ -->
+<section class="step" id="rubrica" data-title="Rúbrica" data-extra>
+  <p class="goal">Entrega los cinco screenshots marcados en la guía.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Criterio</th><th class="pts">Puntos</th></tr></thead>
+      <tbody>
+        <tr><td>Screenshot de proyecto inicializado</td><td class="pts">20</td></tr>
+        <tr><td>Screenshot grid de Pokémon</td><td class="pts">20</td></tr>
+        <tr><td>Screenshot detalle de Pokémon</td><td class="pts">20</td></tr>
+        <tr><td>Screenshot buscador funcionando</td><td class="pts">20</td></tr>
+        <tr><td>Screenshot de botón regresar</td><td class="pts">20</td></tr>
+        <tr class="total"><td>Total</td><td class="pts">100</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <footer>Universidad Marista de Mérida · Diseño de Interfaces · Datos de <a href="https://pokeapi.co" target="_blank" rel="noopener">PokéAPI</a></footer>
+</section>
+
+</div>
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function () {
+  var STORE_KEY = "pokedex-next-guia:done";
+  var THEME_KEY = "pokedex-next-guia:theme";
+
+  function load(key, fallback) {
+    try { var v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); }
+    catch (e) { return fallback; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+
+  /* ---- Code blocks ---- */
+  var CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+
+  document.querySelectorAll('script[type="text/x-code"]').forEach(function (s) {
+    var raw = s.textContent.replace(/^\n/, "").replace(/\s+$/, "");
+    var wrap = document.createElement("div");
+    wrap.className = "code";
+
+    var bar = document.createElement("div");
+    bar.className = "code-bar";
+    var name = document.createElement("span");
+    name.textContent = s.dataset.file || "";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "copy";
+    btn.textContent = "Copiar";
+    btn.setAttribute("aria-label", "Copiar código de " + (s.dataset.file || "este bloque"));
+    btn.addEventListener("click", function () {
+      var done = function () {
+        btn.textContent = "Copiado";
+        btn.classList.add("ok");
+        setTimeout(function () { btn.textContent = "Copiar"; btn.classList.remove("ok"); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(raw).then(done, function () { fallbackCopy(raw); done(); });
+      } else { fallbackCopy(raw); done(); }
+    });
+    bar.appendChild(name);
+    bar.appendChild(btn);
+
+    var pre = document.createElement("pre");
+    var code = document.createElement("code");
+    code.textContent = raw;
+    var lang = s.dataset.lang || "javascript";
+    if (window.hljs && lang !== "plaintext") {
+      try { code.innerHTML = hljs.highlight(raw, { language: lang }).value; } catch (e) {}
+    }
+    pre.appendChild(code);
+    wrap.appendChild(bar);
+    wrap.appendChild(pre);
+    s.replaceWith(wrap);
+  });
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    ta.remove();
+  }
+
+  /* ---- Screenshot callouts ---- */
+  document.querySelectorAll("[data-shot]").forEach(function (el) {
+    var inner = el.innerHTML;
+    el.innerHTML = CAMERA + "<div>" + inner + "<small>Tómalo ahora; cuenta para tu calificación.</small></div>";
+  });
+
+  /* ---- Steps, nav and progress ---- */
+  var sections = Array.prototype.slice.call(document.querySelectorAll("section.step"));
+  var mainSteps = sections.filter(function (s) { return !s.hasAttribute("data-extra"); });
+  var done = load(STORE_KEY, {});
+  var nav = document.getElementById("steps");
+  var links = {};
+
+  sections.forEach(function (sec, idx) {
+    var isExtra = sec.hasAttribute("data-extra");
+    var n = isExtra ? "" : String(mainSteps.indexOf(sec) + 1);
+    var title = sec.dataset.title;
+
+    var head = document.createElement("div");
+    head.className = "step-head";
+    head.innerHTML =
+      (isExtra ? "" : '<span class="big" aria-hidden="true">' + n + "</span>") +
+      "<h2>" + (isExtra ? "" : '<span class="visually-hidden" style="position:absolute;left:-9999px">Paso ' + n + ": </span>") + title + "</h2>";
+    if (!isExtra) {
+      var label = document.createElement("label");
+      label.className = "step-check";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!done[sec.id];
+      cb.addEventListener("change", function () {
+        done[sec.id] = cb.checked;
+        save(STORE_KEY, done);
+        refresh();
+      });
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode("Terminado"));
+      head.appendChild(label);
+      sec._cb = cb;
+    }
+    sec.insertBefore(head, sec.firstChild);
+
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = "#" + sec.id;
+    a.innerHTML = '<span class="num">' + (isExtra ? (sec.dataset.icon || "✓") : n) + '</span><span class="label">' + title + "</span>";
+    a.title = title;
+    li.appendChild(a);
+    nav.appendChild(li);
+    links[sec.id] = a;
+  });
+
+  function refresh() {
+    var count = 0;
+    mainSteps.forEach(function (sec) {
+      var isDone = !!done[sec.id];
+      if (isDone) count++;
+      links[sec.id].classList.toggle("done", isDone);
+      if (sec._cb) sec._cb.checked = isDone;
+    });
+    document.getElementById("progress-label").textContent = count + " de " + mainSteps.length;
+    document.getElementById("progress-fill").style.width = (count / mainSteps.length * 100) + "%";
+  }
+  refresh();
+
+  document.getElementById("reset").addEventListener("click", function () {
+    done = {};
+    save(STORE_KEY, done);
+    refresh();
+  });
+
+  /* active section highlight */
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          Object.keys(links).forEach(function (k) { links[k].classList.remove("active"); });
+          var a = links[e.target.id];
+          if (a) {
+            a.classList.add("active");
+            if (window.matchMedia("(max-width: 900px)").matches) {
+              a.scrollIntoView({ block: "nearest", inline: "center" });
+            }
+          }
+        }
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    sections.forEach(function (s) { io.observe(s); });
+  }
+
+  /* ---- Theme toggle ---- */
+  var root = document.documentElement;
+  var themeBtn = document.getElementById("theme");
+  function currentIsDark() {
+    var t = root.getAttribute("data-theme");
+    if (t) return t === "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function paintThemeLabel() {
+    themeBtn.textContent = currentIsDark() ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+  }
+  var savedTheme = load(THEME_KEY, null);
+  if (savedTheme) root.setAttribute("data-theme", savedTheme);
+  paintThemeLabel();
+  themeBtn.addEventListener("click", function () {
+    var next = currentIsDark() ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    save(THEME_KEY, next);
+    paintThemeLabel();
+  });
+})();
+</script>
+</body>
+</html>
