@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADA9 · Tu propia API REST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #FBFCFE;
+  --paper-2: #EEF2F9;
+  --ink: #14213D;
+  --ink-soft: #4A5876;
+  --line: #D6DDEA;
+  --brand: #1F3A93;
+  --brand-ink: #FFFFFF;
+  --mark: #FFE45C;
+  --mark-ink: #14213D;
+  --ok: #2F9E6A;
+  --code-bg: #0F1729;
+  --code-ink: #E3E8F4;
+  --code-line: #24304A;
+  --tk-key: #FF8FB1;
+  --tk-str: #9BE38F;
+  --tk-tag: #7CC7FF;
+  --tk-attr: #FFD27A;
+  --tk-com: #7C8AA8;
+  --tk-num: #C9A6FF;
+  --tk-fn: #8FE3E0;
+  --sans: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E1524;
+    --paper-2: #16203A;
+    --ink: #E6EBF5;
+    --ink-soft: #A3AFC8;
+    --line: #2A3653;
+    --brand: #7FA2FF;
+    --brand-ink: #0E1524;
+    --mark: #E8C93A;
+    --mark-ink: #0E1524;
+    --ok: #4CC08A;
+    --code-bg: #080D18;
+    --code-line: #1F2A43;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E1524;
+  --paper-2: #16203A;
+  --ink: #E6EBF5;
+  --ink-soft: #A3AFC8;
+  --line: #2A3653;
+  --brand: #7FA2FF;
+  --brand-ink: #0E1524;
+  --mark: #E8C93A;
+  --mark-ink: #0E1524;
+  --ok: #4CC08A;
+  --code-bg: #080D18;
+  --code-line: #1F2A43;
+}
+
+:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 24px); scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 18px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; }
+a { color: var(--brand); }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar ---------- */
+.rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 22px 28px;
+  border-right: 1px solid var(--line);
+  background: var(--paper-2);
+}
+.rail-course { font-size: 14px; color: var(--ink-soft); margin: 0 0 4px; }
+.rail-title { font-size: 22px; line-height: 1.2; margin: 0 0 20px; }
+.progress { margin-bottom: 20px; }
+.progress-text { font-size: 14px; color: var(--ink-soft); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.progress-bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0; background: var(--ok); border-radius: 99px; transition: width .3s ease; }
+@media (prefers-reduced-motion: reduce) { .progress-fill { transition: none; } }
+
+.steps { list-style: none; padding: 0; margin: 0; }
+.steps li { margin: 0; }
+.steps a {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 8px;
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.steps a:hover { background: var(--line); }
+.steps a.active { background: var(--brand); color: var(--brand-ink); }
+.num {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 700;
+  border: 2px solid currentColor;
+  font-variant-numeric: tabular-nums;
+}
+.steps a.done .num { background: var(--ok); border-color: var(--ok); color: #fff; }
+.steps a.active.done .num { border-color: var(--brand-ink); }
+.rail-reset {
+  margin-top: 18px;
+  background: none; border: 0; padding: 0;
+  font: inherit; font-size: 14px; color: var(--ink-soft);
+  text-decoration: underline; cursor: pointer;
+}
+.theme-toggle {
+  margin-top: 10px;
+  display: block;
+  background: none; border: 0; padding: 0;
+  font: inherit; font-size: 14px; color: var(--ink-soft);
+  text-decoration: underline; cursor: pointer;
+}
+
+/* ---------- Main ---------- */
+main { padding: 56px clamp(20px, 5vw, 72px) 120px; }
+.col { max-width: 760px; }
+
+.hero { padding-bottom: 40px; margin-bottom: 48px; border-bottom: 1px solid var(--line); }
+.hero p.course { margin: 0 0 12px; color: var(--ink-soft); font-size: 16px; }
+.hero h1 {
+  font-size: clamp(40px, 6vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin: 0 0 20px;
+}
+.hero h1 span { display: block; }
+.hero .lead { font-size: 21px; max-width: 34em; margin: 0 0 24px; }
+.prereq { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.prereq li {
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 4px 14px;
+  font-size: 15px;
+  background: var(--paper-2);
+}
+
+section.step { margin-bottom: 72px; }
+.step-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+.step-head .big {
+  flex: none;
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+  min-width: 1.4em;
+}
+.step-head h2 { font-size: 30px; line-height: 1.15; margin: 4px 0 0; flex: 1; }
+.step-check {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 6px;
+  padding: 6px 12px;
+  border: 2px solid var(--line);
+  border-radius: 99px;
+  font-size: 15px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--paper);
+  color: var(--ink);
+}
+.step-check input { width: 18px; height: 18px; accent-color: var(--ok); margin: 0; cursor: pointer; }
+.step-check:has(input:checked) { border-color: var(--ok); color: var(--ok); font-weight: 700; }
+.goal { font-size: 19px; color: var(--ink-soft); margin: 0 0 22px; }
+
+h3 { font-size: 21px; margin: 32px 0 8px; }
+p { margin: 0 0 16px; }
+ol.do { padding-left: 1.4em; margin: 0 0 16px; }
+ol.do > li { margin-bottom: 10px; padding-left: 4px; }
+ol.do > li::marker { font-weight: 700; color: var(--brand); }
+ul.why { margin: 0 0 16px; padding-left: 1.2em; }
+ul.why li { margin-bottom: 8px; }
+
+code:not(pre code) {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  padding: 1px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.cmd {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  font-weight: 600;
+  background: var(--mark);
+  color: var(--mark-ink);
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  box-decoration-break: clone;
+}
+
+/* Code blocks */
+.code {
+  margin: 0 0 22px;
+  border-radius: 10px;
+  background: var(--code-bg);
+  border: 1px solid var(--code-line);
+  overflow: hidden;
+}
+.code-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px 8px 16px;
+  border-bottom: 1px solid var(--code-line);
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--tk-com);
+}
+.copy {
+  font: 600 13px var(--sans);
+  color: var(--code-ink);
+  background: transparent;
+  border: 1px solid var(--code-line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.copy:hover { background: var(--code-line); }
+.copy.ok { color: var(--tk-str); border-color: var(--tk-str); }
+.code pre {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--code-ink);
+  tab-size: 2;
+}
+.hljs-keyword, .hljs-built_in { color: var(--tk-key); }
+.hljs-string, .hljs-template-string { color: var(--tk-str); }
+.hljs-tag, .hljs-name { color: var(--tk-tag); }
+.hljs-attr { color: var(--tk-attr); }
+.hljs-comment { color: var(--tk-com); font-style: italic; }
+.hljs-number, .hljs-literal { color: var(--tk-num); }
+.hljs-title, .hljs-title.function_ { color: var(--tk-fn); }
+.hljs-subst { color: var(--code-ink); }
+
+/* Callouts */
+.shot {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 14px;
+  align-items: center;
+  margin: 24px 0 0;
+  padding: 14px 18px;
+  border: 2px dashed var(--brand);
+  border-radius: 10px;
+  font-size: 17px;
+}
+.shot svg { width: 32px; height: 32px; color: var(--brand); }
+.shot strong { display: block; }
+.shot small { color: var(--ink-soft); font-size: 15px; }
+.note {
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  border-left: 4px solid var(--mark);
+  background: var(--paper-2);
+  border-radius: 0 8px 8px 0;
+  font-size: 17px;
+}
+.note p:last-child { margin-bottom: 0; }
+
+.tree {
+  font-family: var(--mono);
+  font-size: 14.5px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 0 0 20px;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.6;
+}
+.tree b { color: var(--ok); }
+
+.table-wrap { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 16px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--paper-2); font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+td.pts, th.pts { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.total td { font-weight: 700; background: var(--paper-2); }
+
+footer { color: var(--ink-soft); font-size: 15px; border-top: 1px solid var(--line); padding-top: 24px; margin-top: 40px; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .rail {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    height: auto;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    overflow: visible;
+  }
+  .rail-course, .rail-title, .rail-reset, .theme-toggle { display: none; }
+  .progress { margin-bottom: 8px; }
+  .steps { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .steps::-webkit-scrollbar { display: none; }
+  .steps a { grid-template-columns: 30px; padding: 4px; }
+  .steps a .label { display: none; }
+  main { padding-top: 32px; }
+  .step-head { flex-wrap: wrap; }
+  .step-head .big { font-size: 38px; }
+  .step-head h2 { font-size: 25px; }
+  .step-check { margin-left: auto; }
+  body { font-size: 17px; }
+}
+@media print {
+  .rail, .copy, .step-check { display: none; }
+  .layout { display: block; }
+  .code { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="rail" aria-label="Pasos de la práctica">
+  <p class="rail-course">Diseño de Interfaces · UMM</p>
+  <p class="rail-title"><strong>Tu propia API REST</strong></p>
+  <div class="progress" aria-live="polite">
+    <div class="progress-text"><span>Tu avance</span><span id="progress-label">0 de 10</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+  <ol class="steps" id="steps"></ol>
+  <button class="rail-reset" id="reset" type="button">Reiniciar avance</button>
+  <button class="theme-toggle" id="theme" type="button">Cambiar a modo oscuro</button>
+</nav>
+
+<main>
+<div class="col">
+
+<header class="hero" id="inicio">
+  <p class="course">Universidad Marista de Mérida · Diseño de Interfaces · ADA9</p>
+  <h1><span>Laboratorio</span><span>API REST</span></h1>
+  <p class="lead">Hasta ahora tu Pokédex le pedía los datos a PokéAPI, una API de alguien más. En esta práctica vas a construir <strong>tu propia API REST</strong> dentro del mismo proyecto de Next.js y conectar tu Pokédex a ella. Marca cada paso como terminado para llevar tu avance.</p>
+  <ul class="prereq" aria-label="Prerrequisitos">
+    <li>Pokédex de la ADA8 terminada</li>
+    <li>Node.js 20 o superior</li>
+    <li>VS Code</li>
+    <li>Google Chrome</li>
+  </ul>
+</header>
+
+<!-- ============ PASO 1 ============ -->
+<section class="step" id="paso-1" data-title="Prepara tu proyecto">
+  <p class="goal">Al terminar tendrás tu Pokédex de la ADA8 corriendo en <strong>localhost:3000</strong>, lista para cambiarle la API.</p>
+  <ol class="do">
+    <li>Abre en VS Code la carpeta de tu Pokédex de la ADA8: <span class="cmd">code .</span></li>
+    <li>Desde la terminal de VS Code ejecuta: <span class="cmd">npm run dev</span></li>
+    <li>Abre <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a> y revisa que funcionen el grid, el buscador y el detalle.</li>
+  </ol>
+  <p>Así debe verse tu proyecto. Al terminar esta práctica tendrá tres carpetas y archivos nuevos:</p>
+  <div class="tree">app/
+  api/                    <b>← nuevo: tu API</b>
+    pokemon/
+      route.js            <b>← nuevo</b>
+      [id]/
+        route.js          <b>← nuevo</b>
+  pokemon-details/
+    page.js
+    loading.js
+  layout.js
+  page.js
+data/
+  pokemons.js             <b>← nuevo: tus datos</b></div>
+  <div class="note"><p>Si tu Pokédex de la ADA8 no quedó funcionando, termínala primero con <code>guia.html</code>. Esta práctica parte del código final de esa guía.</p></div>
+</section>
+
+<!-- ============ PASO 2 ============ -->
+<section class="step" id="paso-2" data-title="¿Qué es una API REST?">
+  <p class="goal">Entiendes qué pasa cuando tu página “le pide” los Pokémon a PokéAPI, y lo ves con tus propios ojos en el navegador.</p>
+  <p>Una <strong>API</strong> es la forma en que dos programas se comunican. Uno, el <strong>cliente</strong>, hace una petición. El otro, el <strong>servidor</strong>, responde. En tu Pokédex el cliente es el navegador y el servidor era PokéAPI:</p>
+  <div class="tree">Navegador (cliente)                 PokéAPI (servidor)
+       │                                   │
+       │ ── GET /api/v2/pokemon/25 ──────▶ │
+       │                                   │  busca a Pikachu
+       │ ◀───────── 200 OK + JSON ──────── │
+       │                                   │</div>
+  <p><strong>REST</strong> es un conjunto de reglas para diseñar APIs que usan HTTP, el mismo protocolo de las páginas web. Las ideas principales son cuatro:</p>
+  <ul class="why">
+    <li><strong>Recursos con URL.</strong> Cada “cosa” tiene su dirección. <code>/pokemon</code> es la colección completa y <code>/pokemon/25</code> es un Pokémon en particular.</li>
+    <li><strong>Métodos HTTP.</strong> El método dice <em>qué quieres hacer</em> con el recurso.</li>
+    <li><strong>Códigos de estado.</strong> Cada respuesta trae un número que dice cómo le fue a la petición.</li>
+    <li><strong>JSON.</strong> Los datos viajan como texto en formato JSON, que se parece mucho a un objeto de JavaScript.</li>
+  </ul>
+  <h3>Los métodos HTTP</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Método</th><th>Para qué sirve</th><th>Ejemplo en tu API</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET</code></td><td>Leer datos</td><td><code>GET /api/pokemon</code> → lista de Pokémon</td></tr>
+        <tr><td><code>GET</code></td><td>Leer un solo elemento</td><td><code>GET /api/pokemon/25</code> → Pikachu</td></tr>
+        <tr><td><code>POST</code></td><td>Crear un elemento nuevo</td><td><code>POST /api/pokemon</code> → agrega un Pokémon</td></tr>
+        <tr><td><code>PUT</code> / <code>PATCH</code></td><td>Modificar un elemento</td><td><code>PATCH /api/pokemon/25</code> → cambia a Pikachu</td></tr>
+        <tr><td><code>DELETE</code></td><td>Borrar un elemento</td><td><code>DELETE /api/pokemon/25</code> → borra a Pikachu</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Los códigos de estado que vas a usar</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Código</th><th>Significa</th><th>Cuándo lo regresas</th></tr></thead>
+      <tbody>
+        <tr><td><code>200</code> OK</td><td>Todo bien</td><td>Un <code>GET</code> que encontró lo que pediste</td></tr>
+        <tr><td><code>201</code> Created</td><td>Se creó algo nuevo</td><td>Un <code>POST</code> que funcionó</td></tr>
+        <tr><td><code>400</code> Bad Request</td><td>La petición está mal</td><td>Faltan datos obligatorios</td></tr>
+        <tr><td><code>404</code> Not Found</td><td>No existe</td><td>Piden un Pokémon que no tienes</td></tr>
+        <tr><td><code>500</code> Server Error</td><td>Falló el servidor</td><td>Un error en tu código</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note"><p>Truco para recordarlos: los <strong>2xx</strong> son éxito, los <strong>4xx</strong> son culpa del cliente y los <strong>5xx</strong> son culpa del servidor.</p></div>
+  <h3>Míralo en tu navegador</h3>
+  <ol class="do">
+    <li>Abre <a href="https://pokeapi.co/api/v2/pokemon/25" target="_blank" rel="noopener">https://pokeapi.co/api/v2/pokemon/25</a> en una pestaña nueva. Eso que ves es JSON: la respuesta cruda de la API. Cuando escribes una URL en el navegador estás haciendo un <code>GET</code>.</li>
+    <li>Regresa a <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> y abre las herramientas de desarrollador con <code>F12</code> (en Mac <code>Cmd + Option + I</code>).</li>
+    <li>Ve a la pestaña <strong>Network</strong> (Red) y recarga la página.</li>
+    <li>Busca la petición que empieza con <code>pokemon?limit=150</code> y dale clic. Revisa tres cosas: el <strong>Request Method</strong> (<code>GET</code>), el <strong>Status Code</strong> (<code>200</code>) y la pestaña <strong>Response</strong>, con el JSON que llegó.</li>
+  </ol>
+  <div class="shot" data-shot>
+    <strong>Screenshot 1: pestaña Network con la petición a PokéAPI</strong>
+  </div>
+</section>
+
+<!-- ============ PASO 3 ============ -->
+<section class="step" id="paso-3" data-title="Tus datos">
+  <p class="goal">Tu proyecto tiene su propia lista de Pokémon, sin depender de nadie más.</p>
+  <p>Toda API necesita de dónde sacar los datos. En un proyecto real sería una base de datos; aquí vamos a usar un <strong>arreglo de JavaScript</strong>. Tú decides qué campos tiene cada Pokémon: eso se llama diseñar el <strong>modelo de datos</strong>.</p>
+  <ol class="do">
+    <li>En la raíz del proyecto (al mismo nivel que <code>app</code>, <strong>no</strong> dentro) crea una carpeta llamada <code>data</code>.</li>
+    <li>Dentro, crea un archivo llamado <code>pokemons.js</code> con este contenido:</li>
+  </ol>
+<script type="text/x-code" data-file="data/pokemons.js">
+// Nuestra "base de datos": un arreglo que vive en la memoria del servidor.
+const sprite = (id) =>
+  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+
+const lista = [
+  {
+    id: 1, name: "bulbasaur", types: ["grass", "poison"], height: 0.7, weight: 6.9,
+    stats: [{ name: "hp", value: 45 }, { name: "attack", value: 49 }, { name: "defense", value: 49 }, { name: "speed", value: 45 }],
+  },
+  {
+    id: 2, name: "ivysaur", types: ["grass", "poison"], height: 1, weight: 13,
+    stats: [{ name: "hp", value: 60 }, { name: "attack", value: 62 }, { name: "defense", value: 63 }, { name: "speed", value: 60 }],
+  },
+  {
+    id: 3, name: "venusaur", types: ["grass", "poison"], height: 2, weight: 100,
+    stats: [{ name: "hp", value: 80 }, { name: "attack", value: 82 }, { name: "defense", value: 83 }, { name: "speed", value: 80 }],
+  },
+  {
+    id: 4, name: "charmander", types: ["fire"], height: 0.6, weight: 8.5,
+    stats: [{ name: "hp", value: 39 }, { name: "attack", value: 52 }, { name: "defense", value: 43 }, { name: "speed", value: 65 }],
+  },
+  {
+    id: 5, name: "charmeleon", types: ["fire"], height: 1.1, weight: 19,
+    stats: [{ name: "hp", value: 58 }, { name: "attack", value: 64 }, { name: "defense", value: 58 }, { name: "speed", value: 80 }],
+  },
+  {
+    id: 6, name: "charizard", types: ["fire", "flying"], height: 1.7, weight: 90.5,
+    stats: [{ name: "hp", value: 78 }, { name: "attack", value: 84 }, { name: "defense", value: 78 }, { name: "speed", value: 100 }],
+  },
+  {
+    id: 7, name: "squirtle", types: ["water"], height: 0.5, weight: 9,
+    stats: [{ name: "hp", value: 44 }, { name: "attack", value: 48 }, { name: "defense", value: 65 }, { name: "speed", value: 43 }],
+  },
+  {
+    id: 8, name: "wartortle", types: ["water"], height: 1, weight: 22.5,
+    stats: [{ name: "hp", value: 59 }, { name: "attack", value: 63 }, { name: "defense", value: 80 }, { name: "speed", value: 58 }],
+  },
+  {
+    id: 9, name: "blastoise", types: ["water"], height: 1.6, weight: 85.5,
+    stats: [{ name: "hp", value: 79 }, { name: "attack", value: 83 }, { name: "defense", value: 100 }, { name: "speed", value: 78 }],
+  },
+  {
+    id: 25, name: "pikachu", types: ["electric"], height: 0.4, weight: 6,
+    stats: [{ name: "hp", value: 35 }, { name: "attack", value: 55 }, { name: "defense", value: 40 }, { name: "speed", value: 90 }],
+  },
+  {
+    id: 133, name: "eevee", types: ["normal"], height: 0.3, weight: 6.5,
+    stats: [{ name: "hp", value: 55 }, { name: "attack", value: 55 }, { name: "defense", value: 50 }, { name: "speed", value: 55 }],
+  },
+  {
+    id: 150, name: "mewtwo", types: ["psychic"], height: 2, weight: 122,
+    stats: [{ name: "hp", value: 106 }, { name: "attack", value: 110 }, { name: "defense", value: 90 }, { name: "speed", value: 130 }],
+  },
+];
+
+// A cada Pokémon le agregamos la URL de su imagen
+export const pokemons = lista.map((pokemon) => ({
+  ...pokemon,
+  image: sprite(pokemon.id),
+}));
+</script>
+  <h3>¿Qué está pasando?</h3>
+  <ul class="why">
+    <li>Cada Pokémon ya trae su <code>id</code>. ¿Recuerdas el bug del paso 9 de la ADA8? Aquí no puede pasar, porque el <code>id</code> es parte del dato y no depende de la posición en la lista.</li>
+    <li>Guardamos la estatura en metros y el peso en kilogramos. Como <strong>tú</strong> diseñas los datos, ya no hace falta dividir entre 10 como con PokéAPI.</li>
+    <li><code>export</code> permite que otros archivos importen <code>pokemons</code>. En el siguiente paso lo vas a importar desde tu API.</li>
+  </ul>
+  <div class="note"><p>Puedes agregar los Pokémon que quieras. Solo respeta la misma forma: <code>id</code>, <code>name</code>, <code>types</code>, <code>height</code>, <code>weight</code> y <code>stats</code>. El número de cada Pokémon lo encuentras en <a href="https://pokeapi.co/api/v2/pokemon/pikachu" target="_blank" rel="noopener">pokeapi.co/api/v2/pokemon/<em>nombre</em></a>, en el campo <code>id</code>.</p></div>
+</section>
+
+<!-- ============ PASO 4 ============ -->
+<section class="step" id="paso-4" data-title="Tu primer endpoint">
+  <p class="goal">La URL <code>localhost:3000/api/pokemon</code> responde con tu lista de Pokémon en JSON.</p>
+  <p>Un <strong>endpoint</strong> es una URL de tu API que responde a un método HTTP. En Next.js se crean con un archivo especial llamado <code>route.js</code>. Igual que con <code>page.js</code>, la carpeta donde lo pongas define la URL.</p>
+  <ol class="do">
+    <li>Dentro de <code>app</code> crea una carpeta <code>api</code>, y dentro de ella otra carpeta <code>pokemon</code>.</li>
+    <li>Dentro de <code>app/api/pokemon</code> crea un archivo llamado <code>route.js</code>:</li>
+  </ol>
+  <div class="tree">app/
+  api/
+    pokemon/
+      route.js    <b>← nuevo, responde en /api/pokemon</b></div>
+<script type="text/x-code" data-file="app/api/pokemon/route.js">
+import { pokemons } from "@/data/pokemons";
+
+export async function GET() {
+  return Response.json({
+    count: pokemons.length,
+    results: pokemons,
+  });
+}
+</script>
+  <h3>¿Qué está pasando?</h3>
+  <ul class="why">
+    <li>El <strong>nombre de la función</strong> es el método HTTP que atiende. Como se llama <code>GET</code>, Next.js la ejecuta cada vez que alguien hace un <code>GET</code> a <code>/api/pokemon</code>.</li>
+    <li><code>Response.json(...)</code> convierte el objeto a texto JSON y lo envía como respuesta. Si no indicas un código de estado, por defecto es <code>200</code>.</li>
+    <li>La respuesta tiene la misma forma que la de PokéAPI: un objeto con <code>count</code> y <code>results</code>. Así tu página va a necesitar muy pocos cambios.</li>
+    <li><code>@/</code> es un atajo que significa “la raíz del proyecto”. <code>@/data/pokemons</code> es el archivo que creaste en el paso anterior.</li>
+  </ul>
+  <div class="note"><p>Este código corre en el <strong>servidor</strong>, no en el navegador. Por eso no lleva <code>"use client"</code>. El navegador nunca ve este archivo, solo recibe el JSON que regresa.</p></div>
+  <ol class="do" start="3">
+    <li>Guarda y abre <a href="http://localhost:3000/api/pokemon" target="_blank" rel="noopener">localhost:3000/api/pokemon</a>. Debes ver tu lista en JSON.</li>
+  </ol>
+  <p>Si Chrome muestra todo el texto amontonado, marca la casilla <strong>Dar formato al texto</strong> (Pretty-print) que aparece arriba.</p>
+  <div class="shot" data-shot>
+    <strong>Screenshot 2: tu endpoint /api/pokemon respondiendo JSON</strong>
+  </div>
+</section>
+
+<!-- ============ PASO 5 ============ -->
+<section class="step" id="paso-5" data-title="Parámetros de búsqueda">
+  <p class="goal">Tu endpoint filtra resultados con <code>/api/pokemon?search=char</code>.</p>
+  <p>Lo que va después del <code>?</code> en una URL se llama <strong>query string</strong>, y sirve para mandar opciones a la API. Ya lo usaste sin darte cuenta: en <code>pokemon?limit=150</code> le decías a PokéAPI cuántos Pokémon querías.</p>
+  <p>Reemplaza la función <code>GET</code> de <code>app/api/pokemon/route.js</code>:</p>
+<script type="text/x-code" data-file="app/api/pokemon/route.js">
+import { pokemons } from "@/data/pokemons";
+
+export async function GET(request) {
+  const search = request.nextUrl.searchParams.get("search") ?? "";
+
+  const results = pokemons.filter((pokemon) =>
+    pokemon.name.includes(search.toLowerCase())
+  );
+
+  return Response.json({
+    count: results.length,
+    results,
+  });
+}
+</script>
+  <ul class="why">
+    <li>Ahora <code>GET</code> recibe <code>request</code>, que trae toda la información de la petición: la URL, los encabezados, el cuerpo.</li>
+    <li><code>request.nextUrl.searchParams.get("search")</code> lee el valor de <code>search</code> en la URL. Si no viene, regresa <code>null</code>, y <code>?? ""</code> lo cambia por texto vacío. Un texto vacío está incluido en cualquier nombre, así que sin <code>search</code> regresa todos.</li>
+    <li>Escribir <code>results</code> solo es lo mismo que escribir <code>results: results</code>.</li>
+  </ul>
+  <p>Prueba estas URLs:</p>
+  <ul class="why">
+    <li><a href="http://localhost:3000/api/pokemon?search=char" target="_blank" rel="noopener">localhost:3000/api/pokemon?search=char</a> → <code>count: 3</code></li>
+    <li><a href="http://localhost:3000/api/pokemon?search=saur" target="_blank" rel="noopener">localhost:3000/api/pokemon?search=saur</a> → <code>count: 3</code></li>
+    <li><a href="http://localhost:3000/api/pokemon?search=xyz" target="_blank" rel="noopener">localhost:3000/api/pokemon?search=xyz</a> → <code>count: 0</code> y <code>results</code> vacío</li>
+  </ul>
+  <div class="note"><p>Fíjate que buscar algo que no existe <strong>no</strong> es un error: la respuesta sigue siendo <code>200</code> con una lista vacía. Una búsqueda sin resultados es una respuesta válida.</p></div>
+</section>
+
+<!-- ============ PASO 6 ============ -->
+<section class="step" id="paso-6" data-title="Endpoint de detalle">
+  <p class="goal"><code>/api/pokemon/25</code> regresa a Pikachu, y <code>/api/pokemon/999</code> responde con un error <code>404</code>.</p>
+  <p>En REST, cada elemento tiene su propia URL: la de la colección más su <code>id</code>. Como no vamos a crear una carpeta por cada Pokémon, usamos una <strong>ruta dinámica</strong>: una carpeta con el nombre entre corchetes.</p>
+  <ol class="do">
+    <li>Dentro de <code>app/api/pokemon</code> crea una carpeta llamada <code>[id]</code>, con todo y corchetes.</li>
+    <li>Dentro, crea otro archivo <code>route.js</code>:</li>
+  </ol>
+  <div class="tree">app/
+  api/
+    pokemon/
+      [id]/
+        route.js  <b>← nuevo, responde en /api/pokemon/1, /api/pokemon/25…</b>
+      route.js</div>
+<script type="text/x-code" data-file="app/api/pokemon/[id]/route.js">
+import { pokemons } from "@/data/pokemons";
+
+export async function GET(request, { params }) {
+  const { id } = await params;
+  const pokemon = pokemons.find((p) => p.id === Number(id));
+
+  if (!pokemon) {
+    return Response.json(
+      { error: `No existe el Pokémon con id ${id}` },
+      { status: 404 }
+    );
+  }
+
+  return Response.json(pokemon);
+}
+</script>
+  <h3>¿Qué está pasando?</h3>
+  <ul class="why">
+    <li>Los corchetes en <code>[id]</code> le dicen a Next.js que esa parte de la URL es variable. Lo que venga en su lugar llega en <code>params.id</code>.</li>
+    <li><code>params</code> es una promesa, por eso lleva <code>await</code>. Es igual a lo que hiciste con <code>searchParams</code> en el detalle de la ADA8.</li>
+    <li>Todo lo que viene en una URL es texto. <code>Number(id)</code> convierte <code>"25"</code> en <code>25</code> para poder compararlo con el <code>id</code> de los datos.</li>
+    <li><code>.find()</code> regresa el primer elemento que cumple la condición, o <code>undefined</code> si ninguno la cumple.</li>
+    <li>Si no lo encuentra, respondemos con <code>{ status: 404 }</code>. El segundo parámetro de <code>Response.json</code> es donde se indica el código de estado.</li>
+  </ul>
+  <ol class="do" start="3">
+    <li>Abre <a href="http://localhost:3000/api/pokemon/25" target="_blank" rel="noopener">localhost:3000/api/pokemon/25</a>: debe aparecer Pikachu.</li>
+    <li>Abre la pestaña <strong>Network</strong> de las herramientas de desarrollador y luego abre <a href="http://localhost:3000/api/pokemon/999" target="_blank" rel="noopener">localhost:3000/api/pokemon/999</a>. Verás tu mensaje de error, y en Network la petición aparece en rojo con <strong>Status 404</strong>.</li>
+  </ol>
+  <div class="note"><p>Un error bien hecho tiene dos partes: el <strong>código</strong> (<code>404</code>), para que los programas sepan qué pasó, y un <strong>mensaje</strong>, para que las personas lo entiendan.</p></div>
+  <div class="shot" data-shot>
+    <strong>Screenshot 3: tu API respondiendo 404 en la pestaña Network</strong>
+  </div>
+</section>
+
+<!-- ============ PASO 7 ============ -->
+<section class="step" id="paso-7" data-title="Conecta el listado">
+  <p class="goal">El grid de tu Pokédex muestra los Pokémon de <strong>tu</strong> API en lugar de PokéAPI.</p>
+  <p>Aquí está la ventaja de REST: tu página no sabe ni le importa de dónde vienen los datos. Solo le cambias la URL. Abre <code>app/page.js</code> y haz tres cambios.</p>
+  <h3>1. La URL</h3>
+  <p>En <code>fetchPokemons</code> reemplaza el <code>fetch</code> y el <code>setPokemons</code>:</p>
+<script type="text/x-code" data-file="app/page.js · dentro de fetchPokemons">
+      const res = await fetch("/api/pokemon");
+      const data = await res.json();
+      setPokemons(data.results);
+</script>
+  <ul class="why">
+    <li>La URL ya no empieza con <code>https://</code>. Cuando empieza con <code>/</code>, el navegador la busca en el mismo sitio donde está la página: <code>localhost:3000/api/pokemon</code>.</li>
+    <li>Ya no necesitas el <code>.map()</code> que agregaba el <code>id</code>: tu API ya lo trae.</li>
+  </ul>
+  <h3>2. La imagen</h3>
+  <p>En el grid, cambia el <code>src</code> de la imagen. Ya no hace falta armar la URL con el <code>id</code>, porque tu API la manda lista:</p>
+<script type="text/x-code" data-file="app/page.js · el grid">
+              <img
+                src={pokemon.image}
+                alt={pokemon.name}
+                className="w-24 h-24 mx-auto mb-2"
+              />
+</script>
+  <h3>3. Revisa el resultado</h3>
+  <p>Así queda <code>app/page.js</code> completo:</p>
+<script type="text/x-code" data-file="app/page.js · completo">
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+export default function Home() {
+  const [pokemons, setPokemons] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const fetchPokemons = async () => {
+      const res = await fetch("/api/pokemon");   // ← antes era PokéAPI
+      const data = await res.json();
+      setPokemons(data.results);
+    };
+
+    fetchPokemons();
+  }, []);
+
+  const filteredPokemons = pokemons.filter((pokemon) =>
+    pokemon.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <main className="container mx-auto p-6">
+      <h1 className="text-4xl font-bold text-center mb-8 text-blue-600">Pokédex</h1>
+
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Search Pokémon..."
+        className="w-full max-w-md mx-auto block mb-6 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredPokemons.map((pokemon) => (
+          <Link key={pokemon.id} href={`/pokemon-details?id=${pokemon.id}`} className="block">
+            <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow border border-gray-200 cursor-pointer">
+              <img
+                src={pokemon.image}
+                alt={pokemon.name}
+                className="w-24 h-24 mx-auto mb-2"
+              />
+              <h2 className="text-lg font-semibold capitalize text-gray-800 text-center">
+                {pokemon.name}
+              </h2>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </main>
+  );
+}
+</script>
+  <p>Recarga <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a>. Ahora solo aparecen los 12 Pokémon de tu archivo. En la pestaña <strong>Network</strong> ya no está la petición a PokéAPI; en su lugar aparece <code>pokemon</code> apuntando a <code>localhost:3000/api/pokemon</code>.</p>
+  <div class="shot" data-shot>
+    <strong>Screenshot 4: grid con tus Pokémon y la petición a /api/pokemon en Network</strong>
+  </div>
+</section>
+
+<!-- ============ PASO 8 ============ -->
+<section class="step" id="paso-8" data-title="Conecta el detalle">
+  <p class="goal">La vista de detalle consulta <code>/api/pokemon/{id}</code> y muestra un mensaje si el Pokémon no existe.</p>
+  <p>En la ADA8 el detalle era un <strong>Server Component</strong>. Ahora lo vamos a convertir en un <strong>Client Component</strong>, igual que el listado, para que el navegador le pida los datos a tu API y lo puedas ver en la pestaña Network.</p>
+  <div class="note"><p>¿Por qué no lo dejamos en el servidor? Porque sería el servidor haciéndose una petición a sí mismo. Cuando un Server Component necesita datos que viven en el mismo proyecto, lo correcto es importarlos directamente, sin pasar por la API. La API es para los clientes de afuera: el navegador, una app móvil u otro sistema.</p></div>
+  <ol class="do">
+    <li>Abre <code>app/pokemon-details/page.js</code> y <strong>reemplaza todo su contenido</strong>:</li>
+  </ol>
+<script type="text/x-code" data-file="app/pokemon-details/page.js · completo">
+"use client";
+
+import { use, useEffect, useState } from "react";
+import Link from "next/link";
+
+export default function PokemonDetails({ searchParams }) {
+  const { id } = use(searchParams);
+  const [pokemon, setPokemon] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchPokemon = async () => {
+      const res = await fetch(`/api/pokemon/${id}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error);
+        return;
+      }
+      setPokemon(data);
+    };
+
+    fetchPokemon();
+  }, [id]);
+
+  if (error) {
+    return (
+      <main className="container mx-auto p-6 text-center">
+        <p className="text-xl text-red-600 mb-4">{error}</p>
+        <Link href="/" className="text-blue-600 underline">Back to Pokédex</Link>
+      </main>
+    );
+  }
+
+  if (!pokemon) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-xl">Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <main className="container mx-auto p-6">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
+        <img
+          src={pokemon.image}
+          alt={pokemon.name}
+          className="w-48 h-48 mx-auto mb-4"
+        />
+        <h1 className="text-3xl font-bold capitalize text-center mb-4 text-gray-800">
+          {pokemon.name}
+        </h1>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <h3 className="font-semibold text-gray-600">Height</h3>
+            <p>{pokemon.height} m</p>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-600">Weight</h3>
+            <p>{pokemon.weight} kg</p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-semibold text-gray-600 mb-2">Types</h3>
+          <div className="flex gap-2">
+            {pokemon.types.map((type) => (
+              <span
+                key={type}
+                className="px-3 py-1 bg-blue-500 text-white rounded-full text-sm capitalize"
+              >
+                {type}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-gray-600 mb-2">Stats</h3>
+          {pokemon.stats.map((stat) => (
+            <div key={stat.name} className="mb-2">
+              <div className="flex justify-between">
+                <span className="capitalize">{stat.name}</span>
+                <span>{stat.value}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-500 h-2 rounded-full"
+                  style={{ width: `${(stat.value / 255) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <Link
+          href="/"
+          className="inline-block mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Back to Pokédex
+        </Link>
+      </div>
+    </main>
+  );
+}
+</script>
+  <h3>¿Qué cambió respecto a la ADA8?</h3>
+  <ul class="why">
+    <li>Lleva <code>"use client"</code> y usa <code>useState</code> y <code>useEffect</code>, igual que el listado.</li>
+    <li>Un Client Component no puede ser <code>async</code>, así que no puede hacer <code>await searchParams</code>. En su lugar usamos <code>use(searchParams)</code>, que hace lo mismo.</li>
+    <li><code>res.ok</code> es <code>true</code> cuando el código de estado es 2xx. Si tu API responde <code>404</code>, <code>res.ok</code> es <code>false</code> y mostramos el mensaje de error que mandó la API.</li>
+    <li>Como ahora la página maneja su propio estado de carga con <code>if (!pokemon)</code>, ya no depende de <code>loading.js</code>. Puedes borrar ese archivo.</li>
+    <li>Los datos tienen la forma que <strong>tú</strong> diseñaste: <code>type</code> en lugar de <code>type.type.name</code>, y <code>stat.value</code> en lugar de <code>stat.base_stat</code>. Mucho más simple.</li>
+  </ul>
+  <ol class="do" start="2">
+    <li>Da clic en cualquier Pokémon del grid. Debe abrir su detalle con su imagen, tipos y stats.</li>
+    <li>Abre <a href="http://localhost:3000/pokemon-details?id=999" target="_blank" rel="noopener">localhost:3000/pokemon-details?id=999</a>. Debe aparecer el mensaje “No existe el Pokémon con id 999”.</li>
+  </ol>
+</section>
+
+<!-- ============ PASO 9 ============ -->
+<section class="step" id="paso-9" data-title="Crea Pokémon con POST">
+  <p class="goal">Tu API acepta Pokémon nuevos con <code>POST /api/pokemon</code> y aparecen en el grid.</p>
+  <p>Hasta ahora tu API solo <em>lee</em>. Vamos a agregarle la capacidad de <em>crear</em>. Para eso se usa el método <code>POST</code>, que a diferencia de <code>GET</code> manda datos en el <strong>cuerpo</strong> (body) de la petición.</p>
+  <ol class="do">
+    <li>Abre <code>app/api/pokemon/route.js</code> y, <strong>debajo</strong> de la función <code>GET</code>, agrega la función <code>POST</code>:</li>
+  </ol>
+<script type="text/x-code" data-file="app/api/pokemon/route.js · debajo de GET">
+export async function POST(request) {
+  const body = await request.json();
+
+  if (!body.name) {
+    return Response.json(
+      { error: "El campo name es obligatorio" },
+      { status: 400 }
+    );
+  }
+
+  const newPokemon = {
+    id: Math.max(...pokemons.map((p) => p.id)) + 1,
+    name: body.name.toLowerCase(),
+    types: body.types ?? [],
+    height: body.height ?? 0,
+    weight: body.weight ?? 0,
+    stats: body.stats ?? [],
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png",
+  };
+
+  pokemons.push(newPokemon);
+
+  return Response.json(newPokemon, { status: 201 });
+}
+</script>
+  <h3>¿Qué está pasando?</h3>
+  <ul class="why">
+    <li>El mismo archivo puede tener varias funciones, una por método. <code>GET /api/pokemon</code> ejecuta <code>GET</code> y <code>POST /api/pokemon</code> ejecuta <code>POST</code>. <strong>Misma URL, distinta acción.</strong></li>
+    <li><code>request.json()</code> lee el cuerpo de la petición y lo convierte en objeto.</li>
+    <li><strong>Validamos</strong> antes de guardar: si no viene <code>name</code>, respondemos <code>400</code>. Nunca confíes en que el cliente mande los datos completos.</li>
+    <li>El <code>id</code> lo asigna el servidor, no el cliente: busca el <code>id</code> más alto y le suma 1.</li>
+    <li>Respondemos <code>201 Created</code> y regresamos el Pokémon recién creado, con su <code>id</code>, para que el cliente sepa cuál le tocó.</li>
+  </ul>
+  <h3>Pruébalo desde la consola</h3>
+  <p>La barra de direcciones del navegador solo sabe hacer <code>GET</code>. Para mandar un <code>POST</code> vamos a usar <code>fetch</code> desde la consola.</p>
+  <ol class="do" start="2">
+    <li>Abre <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a>, abre las herramientas de desarrollador y ve a la pestaña <strong>Console</strong>.</li>
+    <li>Pega este código y presiona <code>Enter</code>:</li>
+  </ol>
+<script type="text/x-code" data-file="consola del navegador">
+const res = await fetch("/api/pokemon", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ name: "Mew", types: ["psychic"], height: 0.4, weight: 4 }),
+});
+console.log(res.status, await res.json());
+</script>
+  <ul class="why">
+    <li><code>method: "POST"</code> cambia el método. Si no lo pones, <code>fetch</code> hace un <code>GET</code>.</li>
+    <li><code>headers</code> le avisa al servidor que el cuerpo viene en JSON.</li>
+    <li><code>JSON.stringify</code> convierte el objeto a texto, porque por la red solo viaja texto.</li>
+  </ul>
+  <p>Debes ver <code>201</code> y el nuevo Pokémon con <code>id: 151</code>. Recarga la página: Mew aparece al final del grid con una Pokébola como imagen.</p>
+  <ol class="do" start="4">
+    <li>Ahora prueba mandar un Pokémon sin nombre. Cambia el <code>body</code> por <code>JSON.stringify({})</code> y vuelve a ejecutarlo. Debes recibir <code>400</code> y tu mensaje de error.</li>
+  </ol>
+  <div class="note"><p><strong>Importante:</strong> si detienes el servidor y lo vuelves a iniciar, Mew desaparece. Los datos viven en un arreglo en la memoria del servidor, y la memoria se borra al apagarlo. Para que los datos sobrevivan se necesita una <strong>base de datos</strong>, que es el siguiente paso en cualquier proyecto real.</p></div>
+  <div class="shot" data-shot>
+    <strong>Screenshot 5: consola con el POST (status 201) y el nuevo Pokémon en el grid</strong>
+  </div>
+</section>
+
+<!-- ============ PASO 10 ============ -->
+<section class="step" id="paso-10" data-title="Build">
+  <p class="goal">Compilas la versión de producción y ves tu API en el resumen de rutas.</p>
+  <ol class="do">
+    <li>Detén el servidor de desarrollo con <code>Ctrl + C</code>.</li>
+    <li>Ejecuta <span class="cmd">npm run build</span>. Al terminar verás un resumen de las rutas:</li>
+  </ol>
+<script type="text/x-code" data-file="terminal" data-lang="plaintext">
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/pokemon
+├ ƒ /api/pokemon/[id]
+└ ƒ /pokemon-details
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+</script>
+  <p>Tus dos endpoints aparecen como <strong>dinámicos</strong> (ƒ): el servidor los ejecuta en cada petición, porque la respuesta depende de la URL (<code>?search=</code> o el <code>id</code>) y de los Pokémon que se hayan creado.</p>
+  <ol class="do" start="3">
+    <li>Ejecuta la versión compilada con <span class="cmd">npm start</span> y prueba <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> y <a href="http://localhost:3000/api/pokemon" target="_blank" rel="noopener">localhost:3000/api/pokemon</a>.</li>
+  </ol>
+  <h3>Lo que construiste</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Método</th><th>Endpoint</th><th>Responde</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET</code></td><td><code>/api/pokemon</code></td><td><code>200</code> con la lista</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/pokemon?search=char</code></td><td><code>200</code> con la lista filtrada</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/pokemon/25</code></td><td><code>200</code> con un Pokémon, o <code>404</code></td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/pokemon</code></td><td><code>201</code> con el Pokémon creado, o <code>400</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ RETOS ============ -->
+<section class="step" id="retos" data-title="Retos extra" data-extra data-icon="★">
+  <p class="goal">¿Terminaste antes? Completa tu API con el resto de los métodos.</p>
+  <h3>1. Borrar un Pokémon con DELETE</h3>
+  <p>En <code>app/api/pokemon/[id]/route.js</code> agrega una función <code>DELETE</code>. Busca la posición del Pokémon con <code>findIndex</code>, quítalo con <code>splice</code> y responde <code>200</code>. Si no existe, responde <code>404</code>.</p>
+<script type="text/x-code" data-file="pista">
+const index = pokemons.findIndex((p) => p.id === Number(id));
+pokemons.splice(index, 1); // quita 1 elemento en esa posición
+</script>
+  <p>Pruébalo desde la consola con <code>fetch("/api/pokemon/25", { method: "DELETE" })</code>.</p>
+  <h3>2. Modificar un Pokémon con PATCH</h3>
+  <p>En el mismo archivo agrega una función <code>PATCH</code> que lea el cuerpo y actualice solo los campos que vengan. Pista: <code>Object.assign(pokemon, body)</code>. ¿Qué pasa si alguien manda un <code>id</code> en el cuerpo? ¿Deberías permitirlo?</p>
+  <h3>3. Buscar desde la API</h3>
+  <p>Ahora el buscador de la página filtra en el navegador. Cámbialo para que use <code>/api/pokemon?search=...</code>: mueve el <code>fetch</code> a un <code>useEffect</code> que dependa de <code>[searchTerm]</code>. Mira en Network cómo se hace una petición por cada tecla.</p>
+  <h3>4. Un formulario en lugar de la consola</h3>
+  <p>Crea una página <code>app/nuevo/page.js</code> con un formulario (nombre y tipo) que haga el <code>POST</code> al enviarse y regrese al listado.</p>
+</section>
+
+<!-- ============ RÚBRICA ============ -->
+<section class="step" id="rubrica" data-title="Rúbrica" data-extra>
+  <p class="goal">Entrega los cinco screenshots marcados en la guía.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Criterio</th><th class="pts">Puntos</th></tr></thead>
+      <tbody>
+        <tr><td>Screenshot de la petición a PokéAPI en Network</td><td class="pts">20</td></tr>
+        <tr><td>Screenshot de <code>/api/pokemon</code> respondiendo JSON</td><td class="pts">20</td></tr>
+        <tr><td>Screenshot de la respuesta 404 en Network</td><td class="pts">20</td></tr>
+        <tr><td>Screenshot del grid consumiendo tu API</td><td class="pts">20</td></tr>
+        <tr><td>Screenshot del POST en consola y el Pokémon nuevo en el grid</td><td class="pts">20</td></tr>
+        <tr class="total"><td>Total</td><td class="pts">100</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <footer>Universidad Marista de Mérida · Diseño de Interfaces · Imágenes de <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokeAPI/sprites</a></footer>
+</section>
+
+</div>
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function () {
+  var STORE_KEY = "pokedex-api-guia:done";
+  var THEME_KEY = "pokedex-next-guia:theme";
+
+  function load(key, fallback) {
+    try { var v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); }
+    catch (e) { return fallback; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+
+  /* ---- Code blocks ---- */
+  var CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+
+  document.querySelectorAll('script[type="text/x-code"]').forEach(function (s) {
+    var raw = s.textContent.replace(/^\n/, "").replace(/\s+$/, "");
+    var wrap = document.createElement("div");
+    wrap.className = "code";
+
+    var bar = document.createElement("div");
+    bar.className = "code-bar";
+    var name = document.createElement("span");
+    name.textContent = s.dataset.file || "";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "copy";
+    btn.textContent = "Copiar";
+    btn.setAttribute("aria-label", "Copiar código de " + (s.dataset.file || "este bloque"));
+    btn.addEventListener("click", function () {
+      var done = function () {
+        btn.textContent = "Copiado";
+        btn.classList.add("ok");
+        setTimeout(function () { btn.textContent = "Copiar"; btn.classList.remove("ok"); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(raw).then(done, function () { fallbackCopy(raw); done(); });
+      } else { fallbackCopy(raw); done(); }
+    });
+    bar.appendChild(name);
+    bar.appendChild(btn);
+
+    var pre = document.createElement("pre");
+    var code = document.createElement("code");
+    code.textContent = raw;
+    var lang = s.dataset.lang || "javascript";
+    if (window.hljs && lang !== "plaintext") {
+      try { code.innerHTML = hljs.highlight(raw, { language: lang }).value; } catch (e) {}
+    }
+    pre.appendChild(code);
+    wrap.appendChild(bar);
+    wrap.appendChild(pre);
+    s.replaceWith(wrap);
+  });
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    ta.remove();
+  }
+
+  /* ---- Screenshot callouts ---- */
+  document.querySelectorAll("[data-shot]").forEach(function (el) {
+    var inner = el.innerHTML;
+    el.innerHTML = CAMERA + "<div>" + inner + "<small>Tómalo ahora; cuenta para tu calificación.</small></div>";
+  });
+
+  /* ---- Steps, nav and progress ---- */
+  var sections = Array.prototype.slice.call(document.querySelectorAll("section.step"));
+  var mainSteps = sections.filter(function (s) { return !s.hasAttribute("data-extra"); });
+  var done = load(STORE_KEY, {});
+  var nav = document.getElementById("steps");
+  var links = {};
+
+  sections.forEach(function (sec, idx) {
+    var isExtra = sec.hasAttribute("data-extra");
+    var n = isExtra ? "" : String(mainSteps.indexOf(sec) + 1);
+    var title = sec.dataset.title;
+
+    var head = document.createElement("div");
+    head.className = "step-head";
+    head.innerHTML =
+      (isExtra ? "" : '<span class="big" aria-hidden="true">' + n + "</span>") +
+      "<h2>" + (isExtra ? "" : '<span class="visually-hidden" style="position:absolute;left:-9999px">Paso ' + n + ": </span>") + title + "</h2>";
+    if (!isExtra) {
+      var label = document.createElement("label");
+      label.className = "step-check";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!done[sec.id];
+      cb.addEventListener("change", function () {
+        done[sec.id] = cb.checked;
+        save(STORE_KEY, done);
+        refresh();
+      });
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode("Terminado"));
+      head.appendChild(label);
+      sec._cb = cb;
+    }
+    sec.insertBefore(head, sec.firstChild);
+
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = "#" + sec.id;
+    a.innerHTML = '<span class="num">' + (isExtra ? (sec.dataset.icon || "✓") : n) + '</span><span class="label">' + title + "</span>";
+    a.title = title;
+    li.appendChild(a);
+    nav.appendChild(li);
+    links[sec.id] = a;
+  });
+
+  function refresh() {
+    var count = 0;
+    mainSteps.forEach(function (sec) {
+      var isDone = !!done[sec.id];
+      if (isDone) count++;
+      links[sec.id].classList.toggle("done", isDone);
+      if (sec._cb) sec._cb.checked = isDone;
+    });
+    document.getElementById("progress-label").textContent = count + " de " + mainSteps.length;
+    document.getElementById("progress-fill").style.width = (count / mainSteps.length * 100) + "%";
+  }
+  refresh();
+
+  document.getElementById("reset").addEventListener("click", function () {
+    done = {};
+    save(STORE_KEY, done);
+    refresh();
+  });
+
+  /* active section highlight */
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          Object.keys(links).forEach(function (k) { links[k].classList.remove("active"); });
+          var a = links[e.target.id];
+          if (a) {
+            a.classList.add("active");
+            if (window.matchMedia("(max-width: 900px)").matches) {
+              a.scrollIntoView({ block: "nearest", inline: "center" });
+            }
+          }
+        }
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    sections.forEach(function (s) { io.observe(s); });
+  }
+
+  /* ---- Theme toggle ---- */
+  var root = document.documentElement;
+  var themeBtn = document.getElementById("theme");
+  function currentIsDark() {
+    var t = root.getAttribute("data-theme");
+    if (t) return t === "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function paintThemeLabel() {
+    themeBtn.textContent = currentIsDark() ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+  }
+  var savedTheme = load(THEME_KEY, null);
+  if (savedTheme) root.setAttribute("data-theme", savedTheme);
+  paintThemeLabel();
+  themeBtn.addEventListener("click", function () {
+    var next = currentIsDark() ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    save(THEME_KEY, next);
+    paintThemeLabel();
+  });
+})();
+</script>
+</body>
+</html>
